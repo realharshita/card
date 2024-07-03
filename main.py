@@ -95,14 +95,37 @@ def draw_leaderboard(screen):
             if event.type == pygame.KEYDOWN:
                 return
 
+def get_player_name(screen):
+    name = ""
+    input_active = True
+    while input_active:
+        screen.fill(BG_COLOR)
+        draw_text(screen, "Enter your name:", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3, size=48)
+        draw_text(screen, name, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, size=36)
+        draw_text(screen, "Press Enter to start", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.5, size=24)
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    input_active = False
+                elif event.key == pygame.K_BACKSPACE:
+                    name = name[:-1]
+                else:
+                    name += event.unicode
+
+    return name
+
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('Memory Game')
 
     clock = pygame.time.Clock()
-
-
+    
     def draw_menu():
         screen.fill(BG_COLOR)
         draw_text(screen, "Memory Game", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4, size=48)
@@ -159,6 +182,7 @@ def main():
                         draw_leaderboard(screen)
     
     grid_size = select_difficulty()
+    player_name = get_player_name(screen)
 
     cards = create_grid(grid_size)
     random.shuffle(cards)
@@ -198,22 +222,26 @@ def main():
                             if len(flipped_cards) == 2:
                                 moves += 1
                                 if flipped_cards[0].is_same(flipped_cards[1]):
-                                    matched_pairs.extend(flipped_cards)
+                                    flipped_cards[0].is_matched = True
+                                    flipped_cards[1].is_matched = True
+                                    matched_pairs.append((flipped_cards[0], flipped_cards[1]))
+                                else:
+                                    pygame.time.wait(1000)
+                                    flipped_cards[0].flip()
+                                    flipped_cards[1].flip()
                                 flipped_cards = []
+                            break
 
         for card in cards:
-            if not card.is_matched:
-                card.draw(screen)
+            card.draw(screen)
 
-        if check_game_over(cards):
+        if check_game_over(cards) and not game_over:
             game_over = True
             elapsed_time = (pygame.time.get_ticks() - start_time) // 1000
             final_score = calculate_score(moves, elapsed_time)
-            draw_text(screen, f"Game Over! Moves: {moves}, Time: {elapsed_time} seconds", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
-            draw_text(screen, f"Final Score: {final_score}", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50)
-            name = input("Enter your name: ")
-            update_leaderboard(name, final_score)
-            draw_text(screen, f"Score saved! Check the leaderboard.", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100)
+            draw_text(screen, f"Game Over! Final Score: {final_score}", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, size=48)
+            update_leaderboard(player_name, final_score)
+            draw_text(screen, "Score saved! Check the leaderboard.", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100)
 
         pygame.draw.rect(screen, (0, 0, 255), reset_button)
         draw_text(screen, "Reset", reset_button.centerx, reset_button.centery)
@@ -229,4 +257,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
