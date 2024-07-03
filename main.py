@@ -1,4 +1,5 @@
 import pygame
+import random
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -17,6 +18,7 @@ class Card:
         self.x = col * (CARD_WIDTH + CARD_MARGIN) + CARD_MARGIN
         self.y = row * (CARD_HEIGHT + CARD_MARGIN) + CARD_MARGIN
         self.is_face_up = False
+        self.is_matched = False
 
     def draw(self, screen):
         if self.is_face_up:
@@ -27,6 +29,9 @@ class Card:
     def flip(self):
         self.is_face_up = not self.is_face_up
 
+    def is_same(self, other):
+        return self.row == other.row and self.col == other.col
+
 def create_grid(grid_size):
     cards = []
     for row in range(grid_size):
@@ -34,6 +39,12 @@ def create_grid(grid_size):
             card = Card(row, col)
             cards.append(card)
     return cards
+
+def check_game_over(cards):
+    for card in cards:
+        if not card.is_matched:
+            return False
+    return True
 
 def main():
     pygame.init()
@@ -43,6 +54,9 @@ def main():
     clock = pygame.time.Clock()
 
     cards = create_grid(GRID_SIZE)
+    random.shuffle(cards)
+    flipped_cards = []
+    matched_pairs = []
 
     running = True
     while running:
@@ -52,10 +66,21 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                pass
-
+                pos = pygame.mouse.get_pos()
+                for card in cards:
+                    if card.is_face_up:
+                        continue
+                    if card.x < pos[0] < card.x + CARD_WIDTH and card.y < pos[1] < card.y + CARD_HEIGHT:
+                        card.flip()
+                        flipped_cards.append(card)
+                        if len(flipped_cards) == 2:
+                            if flipped_cards[0].is_same(flipped_cards[1]):
+                                matched_pairs.extend(flipped_cards)
+                            flipped_cards = []
+        
         for card in cards:
-            card.draw(screen)
+            if not card.is_matched:
+                card.draw(screen)
 
         pygame.display.flip()
         clock.tick(60)
