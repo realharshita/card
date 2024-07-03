@@ -1,5 +1,7 @@
 import pygame
 import random
+import json
+import os
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -11,6 +13,7 @@ CARD_COLOR = (100, 100, 100)
 CARD_BACK_COLOR = (200, 200, 200)
 FONT_COLOR = (0, 0, 0)
 FONT_SIZE = 36
+LEADERBOARD_FILE = 'leaderboard.json'
 
 class Card:
     def __init__(self, row, col):
@@ -49,8 +52,8 @@ def check_game_over(cards):
 
 def calculate_score(moves, elapsed_time):
     base_score = 10000
-    time_penalty = elapsed_time  
-    move_penalty = moves * 10   
+    time_penalty = elapsed_time  # 1 second = 1 point penalty
+    move_penalty = moves * 10    # Each move costs 10 points
     score = max(base_score - time_penalty - move_penalty, 0)
     return score
 
@@ -60,13 +63,46 @@ def draw_text(screen, text, x, y, color=FONT_COLOR, size=FONT_SIZE):
     text_rect = text_surface.get_rect(center=(x, y))
     screen.blit(text_surface, text_rect)
 
+def load_leaderboard():
+    if not os.path.exists(LEADERBOARD_FILE):
+        return []
+    with open(LEADERBOARD_FILE, 'r') as file:
+        return json.load(file)
+
+def save_leaderboard(leaderboard):
+    with open(LEADERBOARD_FILE, 'w') as file:
+        json.dump(leaderboard, file)
+
+def update_leaderboard(name, score):
+    leaderboard = load_leaderboard()
+    leaderboard.append({'name': name, 'score': score})
+    leaderboard = sorted(leaderboard, key=lambda x: x['score'], reverse=True)[:10]
+    save_leaderboard(leaderboard)
+
+def draw_leaderboard(screen):
+    leaderboard = load_leaderboard()
+    screen.fill(BG_COLOR)
+    draw_text(screen, "Leaderboard", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 6, size=48)
+    for i, entry in enumerate(leaderboard):
+        draw_text(screen, f"{i + 1}. {entry['name']} - {entry['score']}", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3 + i * 30, size=30)
+    draw_text(screen, "Press any key to return to the menu", SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100, size=24)
+    pygame.display.flip()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                return
+
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('Memory Game')
 
     clock = pygame.time.Clock()
-    
+
+
     def draw_menu():
         screen.fill(BG_COLOR)
         draw_text(screen, "Memory Game", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4, size=48)
@@ -75,6 +111,7 @@ def main():
         draw_text(screen, "2. Medium (6x6)", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50, size=30)
         draw_text(screen, "3. Hard (8x8)", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100, size=30)
         draw_text(screen, "4. Instructions", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 150, size=30)
+        draw_text(screen, "5. Leaderboard", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 200, size=30)
         pygame.display.flip()
     
     def draw_instructions():
@@ -118,6 +155,8 @@ def main():
                             else:
                                 continue
                             break
+                    elif event.key == pygame.K_5:
+                        draw_leaderboard(screen)
     
     grid_size = select_difficulty()
 
@@ -172,19 +211,22 @@ def main():
             final_score = calculate_score(moves, elapsed_time)
             draw_text(screen, f"Game Over! Moves: {moves}, Time: {elapsed_time} seconds", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
             draw_text(screen, f"Final Score: {final_score}", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50)
-        
-        draw_text(screen, f"Moves: {moves}", 100, 50)
-        if not game_over:
-            elapsed_time = (pygame.time.get_ticks() - start_time) // 1000
-            draw_text(screen, f"Time: {elapsed_time} seconds", SCREEN_WIDTH - 100, 50)
+            name = input("Enter your name: ")
+            update_leaderboard(name, final_score)
+            draw_text(screen, f"Score saved! Check the leaderboard.", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100)
 
-        pygame.draw.rect(screen, (0, 255, 0), reset_button)
+        pygame.draw.rect(screen, (0, 0, 255), reset_button)
         draw_text(screen, "Reset", reset_button.centerx, reset_button.centery)
 
+        elapsed_time = (pygame.time.get_ticks() - start_time) // 1000
+        draw_text(screen, f"Moves: {moves}", 100, SCREEN_HEIGHT - 50, size=30)
+        draw_text(screen, f"Time: {elapsed_time} s", 300, SCREEN_HEIGHT - 50, size=30)
+
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(30)
 
     pygame.quit()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
+
