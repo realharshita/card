@@ -3,6 +3,7 @@ import random
 import json
 import os
 
+# Constants
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 CARD_WIDTH = 100
@@ -15,6 +16,7 @@ FONT_COLOR = (0, 0, 0)
 FONT_SIZE = 36
 LEADERBOARD_FILE = 'leaderboard.json'
 
+# Card class
 class Card:
     def __init__(self, row, col):
         self.row = row
@@ -36,6 +38,7 @@ class Card:
     def is_same(self, other):
         return self.row == other.row and self.col == other.col
 
+# Game functions
 def create_grid(grid_size):
     cards = []
     for row in range(grid_size):
@@ -151,7 +154,14 @@ def main():
             draw_text(screen, line, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50 + i * 30, size=24)
         draw_text(screen, "Press any key to return to the menu", SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100, size=24)
         pygame.display.flip()
-    
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if event.type == pygame.KEYDOWN:
+                    return
+
     def select_difficulty():
         while True:
             draw_menu()
@@ -168,16 +178,6 @@ def main():
                         return 8  # Hard: 8x8 grid
                     elif event.key == pygame.K_4:
                         draw_instructions()
-                        while True:
-                            for event in pygame.event.get():
-                                if event.type == pygame.QUIT:
-                                    pygame.quit()
-                                    exit()
-                                if event.type == pygame.KEYDOWN:
-                                    break
-                            else:
-                                continue
-                            break
                     elif event.key == pygame.K_5:
                         draw_leaderboard(screen)
     
@@ -195,6 +195,21 @@ def main():
 
     reset_button = pygame.Rect(SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT - 100, 100, 50)
 
+    reset_message = ""
+
+    def reset_game():
+        nonlocal moves, game_over, start_time, cards, flipped_cards, matched_pairs, reset_message
+        random.shuffle(cards)
+        for card in cards:
+            card.is_face_up = False
+            card.is_matched = False
+        moves = 0
+        game_over = False
+        start_time = pygame.time.get_ticks()
+        flipped_cards = []
+        matched_pairs = []
+        reset_message = "Game reset!"
+
     running = True
     while running:
         screen.fill(BG_COLOR)
@@ -202,35 +217,30 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+            elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 if reset_button.collidepoint(pos):
-                    random.shuffle(cards)
-                    for card in cards:
-                        card.is_face_up = False
-                        card.is_matched = False
-                    moves = 0
-                    game_over = False
-                    start_time = pygame.time.get_ticks()
+                    reset_game()
                 else:
-                    for card in cards:
-                        if card.is_face_up or card.is_matched:
-                            continue
-                        if card.x < pos[0] < card.x + CARD_WIDTH and card.y < pos[1] < card.y + CARD_HEIGHT:
-                            card.flip()
-                            flipped_cards.append(card)
-                            if len(flipped_cards) == 2:
-                                moves += 1
-                                if flipped_cards[0].is_same(flipped_cards[1]):
-                                    flipped_cards[0].is_matched = True
-                                    flipped_cards[1].is_matched = True
-                                    matched_pairs.append((flipped_cards[0], flipped_cards[1]))
-                                else:
-                                    pygame.time.wait(1000)
-                                    flipped_cards[0].flip()
-                                    flipped_cards[1].flip()
-                                flipped_cards = []
-                            break
+                    if not game_over:
+                        for card in cards:
+                            if card.is_face_up or card.is_matched:
+                                continue
+                            if card.x < pos[0] < card.x + CARD_WIDTH and card.y < pos[1] < card.y + CARD_HEIGHT:
+                                card.flip()
+                                flipped_cards.append(card)
+                                if len(flipped_cards) == 2:
+                                    moves += 1
+                                    if flipped_cards[0].is_same(flipped_cards[1]):
+                                        flipped_cards[0].is_matched = True
+                                        flipped_cards[1].is_matched = True
+                                        matched_pairs.extend(flipped_cards)
+                                    else:
+                                        pygame.time.wait(1000)
+                                        flipped_cards[0].flip()
+                                        flipped_cards[1].flip()
+                                    flipped_cards = []
+                                break
 
         for card in cards:
             card.draw(screen)
@@ -249,6 +259,7 @@ def main():
         elapsed_time = (pygame.time.get_ticks() - start_time) // 1000
         draw_text(screen, f"Moves: {moves}", 100, SCREEN_HEIGHT - 50, size=30)
         draw_text(screen, f"Time: {elapsed_time} s", 300, SCREEN_HEIGHT - 50, size=30)
+        draw_text(screen, reset_message, SCREEN_WIDTH // 2, SCREEN_HEIGHT - 150, size=24)
 
         pygame.display.flip()
         clock.tick(30)
