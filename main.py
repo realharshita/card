@@ -10,6 +10,8 @@ CARD_MARGIN = 10
 BG_COLOR = (255, 255, 255)
 CARD_COLOR = (100, 100, 100)
 CARD_BACK_COLOR = (200, 200, 200)
+FONT_COLOR = (0, 0, 0)
+FONT_SIZE = 36
 
 class Card:
     def __init__(self, row, col):
@@ -46,6 +48,12 @@ def check_game_over(cards):
             return False
     return True
 
+def draw_text(screen, text, x, y, color=FONT_COLOR, size=FONT_SIZE):
+    font = pygame.font.Font(None, size)
+    text_surface = font.render(text, True, color)
+    text_rect = text_surface.get_rect(center=(x, y))
+    screen.blit(text_surface, text_rect)
+
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -58,6 +66,10 @@ def main():
     flipped_cards = []
     matched_pairs = []
 
+    moves = 0
+    game_over = False
+    start_time = pygame.time.get_ticks()
+
     running = True
     while running:
         screen.fill(BG_COLOR)
@@ -65,22 +77,33 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pygame.MOUSEBUTTONDOWN and not game_over:
                 pos = pygame.mouse.get_pos()
                 for card in cards:
-                    if card.is_face_up:
+                    if card.is_face_up or card.is_matched:
                         continue
                     if card.x < pos[0] < card.x + CARD_WIDTH and card.y < pos[1] < card.y + CARD_HEIGHT:
                         card.flip()
                         flipped_cards.append(card)
                         if len(flipped_cards) == 2:
+                            moves += 1
                             if flipped_cards[0].is_same(flipped_cards[1]):
                                 matched_pairs.extend(flipped_cards)
                             flipped_cards = []
-        
+
         for card in cards:
             if not card.is_matched:
                 card.draw(screen)
+
+        if check_game_over(cards):
+            game_over = True
+            elapsed_time = (pygame.time.get_ticks() - start_time) // 1000
+            draw_text(screen, f"Game Over! Moves: {moves}, Time: {elapsed_time} seconds", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        
+        draw_text(screen, f"Moves: {moves}", 100, 50)
+        if not game_over:
+            elapsed_time = (pygame.time.get_ticks() - start_time) // 1000
+            draw_text(screen, f"Time: {elapsed_time} seconds", SCREEN_WIDTH - 100, 50)
 
         pygame.display.flip()
         clock.tick(60)
