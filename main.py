@@ -3,7 +3,6 @@ import random
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-GRID_SIZE = 4
 CARD_WIDTH = 100
 CARD_HEIGHT = 100
 CARD_MARGIN = 10
@@ -50,8 +49,8 @@ def check_game_over(cards):
 
 def calculate_score(moves, elapsed_time):
     base_score = 10000
-    time_penalty = elapsed_time 
-    move_penalty = moves * 10  
+    time_penalty = elapsed_time  
+    move_penalty = moves * 10   
     score = max(base_score - time_penalty - move_penalty, 0)
     return score
 
@@ -67,8 +66,62 @@ def main():
     pygame.display.set_caption('Memory Game')
 
     clock = pygame.time.Clock()
+    
+    def draw_menu():
+        screen.fill(BG_COLOR)
+        draw_text(screen, "Memory Game", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4, size=48)
+        draw_text(screen, "Select Difficulty", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50, size=36)
+        draw_text(screen, "1. Easy (4x4)", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, size=30)
+        draw_text(screen, "2. Medium (6x6)", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50, size=30)
+        draw_text(screen, "3. Hard (8x8)", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100, size=30)
+        draw_text(screen, "4. Instructions", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 150, size=30)
+        pygame.display.flip()
+    
+    def draw_instructions():
+        screen.fill(BG_COLOR)
+        draw_text(screen, "Instructions", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4, size=48)
+        instructions = [
+            "1. Select a difficulty level to start the game.",
+            "2. Click on a card to flip it over.",
+            "3. Match pairs of cards to remove them from the board.",
+            "4. The game ends when all pairs are matched.",
+            "5. Your score is based on moves and time taken."
+        ]
+        for i, line in enumerate(instructions):
+            draw_text(screen, line, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50 + i * 30, size=24)
+        draw_text(screen, "Press any key to return to the menu", SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100, size=24)
+        pygame.display.flip()
+    
+    def select_difficulty():
+        while True:
+            draw_menu()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_1:
+                        return 4  # Easy: 4x4 grid
+                    elif event.key == pygame.K_2:
+                        return 6  # Medium: 6x6 grid
+                    elif event.key == pygame.K_3:
+                        return 8  # Hard: 8x8 grid
+                    elif event.key == pygame.K_4:
+                        draw_instructions()
+                        while True:
+                            for event in pygame.event.get():
+                                if event.type == pygame.QUIT:
+                                    pygame.quit()
+                                    exit()
+                                if event.type == pygame.KEYDOWN:
+                                    break
+                            else:
+                                continue
+                            break
+    
+    grid_size = select_difficulty()
 
-    cards = create_grid(GRID_SIZE)
+    cards = create_grid(grid_size)
     random.shuffle(cards)
     flipped_cards = []
     matched_pairs = []
